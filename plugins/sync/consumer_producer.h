@@ -42,7 +42,7 @@ void consumer_producer_destroy(consumer_producer_t* queue);
  * @param item String to add (queue takes ownership)  
  * @return  NULL on success, error message on failure  
  */
-const char* consumer_producer_put(consumer_producer_t* queue, const chgirar* item);
+const char* consumer_producer_put(consumer_producer_t* queue, const char* item);
 
 /**
  * Remove an item from the queue (consumer) and returns it.  
