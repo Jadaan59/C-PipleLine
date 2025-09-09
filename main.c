@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <link.h>
 #include <pthread.h>
 
 // Plugin function type definitions 
@@ -46,17 +48,26 @@ void print_usage(void)
 }
 
 // Function to load a plugin
-plugin_handle_t* load_plugin(const char* plugin_name) 
+static plugin_handle_t* load_plugin(const char* plugin_name) 
 {
     char filename[256];
     snprintf(filename, sizeof(filename), "output/%s.so", plugin_name);
+    void* handle = NULL;
     
     // Open the shared object
-    void* handle = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
-    if (!handle) 
-    {
-        fprintf(stderr, "Error loading plugin %s: %s\n", plugin_name, dlerror());
-        return NULL;
+    #ifdef LM_ID_NEWLM
+    handle = dlmopen(LM_ID_NEWLM, filename, RTLD_NOW | RTLD_LOCAL);
+    if (!handle) {
+        fprintf(stderr, "dlmopen failed for %s: %s\n", filename, dlerror());
+    }
+    #endif
+
+    if (!handle) {
+        handle = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+        if (!handle) {
+            fprintf(stderr, "dlopen failed for %s: %s\n", filename, dlerror());
+            return NULL;
+        }
     }
     
     // Allocate plugin handle
@@ -156,10 +167,7 @@ int main(int argc, char* argv[])
             // Clean up
             for (int j = 0; j <= i; j++) 
             {
-                if (j < i) 
-                {
-                    plugins[j]->fini();
-                }
+                if (j < i) plugins[j]->fini();
                 free_plugin(plugins[j]);
             }
             free(plugins);
