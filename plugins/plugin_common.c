@@ -29,6 +29,12 @@ void* plugin_consumer_thread(void* arg)
             const char* error = context->next_place_work(processed);
             if (error) log_error(context, error);
         }
+
+        if(!context->next_place_work && processed) 
+        {
+            // No next plugin, just free the processed result
+            free((void*)processed);
+        }
         
     }
     
