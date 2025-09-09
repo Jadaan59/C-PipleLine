@@ -206,7 +206,7 @@ int consumer_producer_wait_finished(consumer_producer_t* queue)
     
     pthread_mutex_lock(&queue->mutex);
     // Wait until finished flag is set
-    while (!queue->finished) 
+    while (!queue->finished && queue->count == 0) 
     {
         monitor_reset(&queue->finished_monitor);
         pthread_mutex_unlock(&queue->mutex);
