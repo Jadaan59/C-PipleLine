@@ -1,15 +1,15 @@
-#ifndef PLUGIN_SDK_H
-#define PLUGIN_SDK_H
+#ifndef PLUGIN_COMMON_H
+#define PLUGIN_COMMON_H
 #include "consumer_producer.h"
 
 typedef struct {
-    char name[64];
+    char* name;
     consumer_producer_t* queue;
     pthread_t thread;
     const char* (*process_func)(const char*);
     const char* (*next_place_work)(const char*);
+    plugin_context_t* next_context;
     int initialized;
-    int finished;
 } plugin_context_t;
 
 /**
@@ -95,4 +95,4 @@ void log_error(plugin_context_t* context, const char* message);
 void log_info(plugin_context_t* context, const char* message);
 
 
-#endif // PLUGIN_SDK_H 
+#endif

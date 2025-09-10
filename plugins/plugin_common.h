@@ -8,7 +8,6 @@ typedef struct {
     pthread_t thread;
     const char* (*process_func)(const char*);
     const char* (*next_place_work)(const char*);
-    struct plugin_context_t* next_context;
     int initialized;
 } plugin_context_t;
 

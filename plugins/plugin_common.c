@@ -4,174 +4,156 @@
 #include <string.h>
 #include <unistd.h>
 
+#define SENTINEL_END "<END>"
+
 static plugin_context_t* g_ctx = NULL;
 
+static inline const char* safe_name(plugin_context_t* ctx){
+    return (ctx && ctx->name) ? ctx->name : "unknown";
+}
 
-void* plugin_consumer_thread(void* arg) 
-{
-    plugin_context_t* context = (plugin_context_t*)arg;    
+void log_error(plugin_context_t* context, const char* message){
+    fprintf(stderr, "[ERROR][%s] - %s\n", safe_name(context), message ? message : "(null)");
+}
+
+void log_info(plugin_context_t* context, const char* message){
+    fprintf(stdout, "[INFO][%s] - %s\n", safe_name(context), message ? message : "(null)");
+}
+
+/* Consumer thread: drains queue, processes items, forwards to next stage (if any).
+ * Contract:
+ * - Items returned by consumer_producer_take are heap pointers we must free.
+ * - Processed strings returned by process_func are heap pointers that we own and must free
+ *   if there is no next stage.
+ * - Sentinel handling:
+ *   plugin_place_work() does not enqueue SENTINEL_END; it only signals 'finished' on the queue.
+ *   After we drain the queue here, we propagate SENTINEL_END downstream (if any).
+ */
+void* plugin_consumer_thread(void* arg){
+    plugin_context_t* context = (plugin_context_t*)arg;
     log_info(context, "Consumer thread started");
-    
-    while (1) 
-    {
-        // Get item from queue
-        char* current_item = consumer_producer_get(context->queue);
-        if (!current_item) break;
-        
-        // Process the item
-        const char* processed = context->process_func(current_item);
-        // Free the current item
-        free(current_item);
-        // Handle the processed result
-        if (processed && context->next_place_work) 
-        {
-            // Forward to next plugin if available
-            const char* error = context->next_place_work(processed);
-            if (error) log_error(context, error);
+
+    for(;;){
+        char* item = consumer_producer_get(context->queue);
+        if (!item) {
+            // Queue is finished and empty.
+            break;
         }
 
-        if(!context->next_place_work && processed) 
-        {
-            // No next plugin, just free the processed result
-            free((void*)processed);
+        // Process normally
+        const char* processed = context->process_func(item);
+        free(item); // queue item always freed here
+
+        if (processed){
+            if (context->next_place_work){
+                const char* err = context->next_place_work(processed);
+                if (err) log_error(context, err);
+            } else {
+                // No next stage: we must free the processed result.
+                free((void*)processed);
+            }
         }
-        
     }
-    
-    // After processing all items, propagate <END> to next plugin if we have one
-    if (context->next_place_work ) 
-    {
-         const char* err = context->next_place_work("<END>");
+
+    // Propagate sentinel to the next stage after draining
+    if (context->next_place_work){
+        const char* err = context->next_place_work(SENTINEL_END);
         if (err) log_error(context, err);
     }
-    
-    log_info(context, "Consumer thread finished");
+
+    log_info(context, "Consumer thread exiting");
     return NULL;
 }
 
-void log_error(plugin_context_t* context, const char* message) 
-{
-    fprintf(stderr,"[ERROR][%s] - %s\n", context->name, message);
-}
-
-void log_info(plugin_context_t* context, const char* message) 
-{
-    fprintf(stderr, "[INFO][%s] - %s\n", context->name, message);
-}
-
-
-const char* plugin_get_name(void) 
-{
-    return g_ctx ? g_ctx->name : NULL;
-}
-
-
-const char* common_plugin_init(const char* (*process_function)(const char*), const char* name, int queue_size) 
+const char* common_plugin_init(const char* (*process_function)(const char*),
+                               const char* name,
+                               int queue_size)
 {
     if (g_ctx) return "Plugin already initialized";
     if (!process_function || !name || queue_size <= 0) return "Invalid parameters";
-    
-    plugin_context_t* context = (plugin_context_t*)malloc(sizeof(plugin_context_t));
-    if (!context) return "Memory allocation failed";
 
-    char* copy = strdup(name);
-    if (!copy) 
-    {
-        free(context);
+    plugin_context_t* ctx = (plugin_context_t*)calloc(1, sizeof(*ctx));
+    if (!ctx) return "Memory allocation failed";
+
+    ctx->name = strdup(name);
+    if (!ctx->name){
+        free(ctx);
         return "Memory allocation failed";
     }
-
-    context->name = copy;
-    context->process_func = process_function;
-    context->next_place_work = NULL;
-    context->next_context = NULL;
-    context->initialized = 0;
-    context->queue = (consumer_producer_t*)malloc(sizeof(consumer_producer_t));
-    if (!context->queue)
-    {
-        free(context->name);
-        free(context);
-        return "Memory allocation failed";
-    }
-    const char* error = consumer_producer_init(context->queue, queue_size);
-    if (error)
-    {
-        free(context->queue);
-        free(context->name);
-        free(context);
-        return error;
+    ctx->queue = malloc(sizeof(consumer_producer_t));
+    const char* err = consumer_producer_init(ctx->queue ,queue_size);
+    if (err){
+        free(ctx->name);
+        free(ctx->queue);
+        free(ctx);
+        return "Failed to create queue";
     }
 
-    //start the worker thread
-    int process = pthread_create(&context->thread, NULL, plugin_consumer_thread, context);
-    if (process != 0)
-    {
-        consumer_producer_destroy(context->queue);
-        free(context->queue);
-        free(context->name);
-        free(context);
+    ctx->process_func = process_function;
+    ctx->next_place_work = NULL;
+    ctx->initialized = 0;
+
+    int rc = pthread_create(&ctx->thread, NULL, plugin_consumer_thread, ctx);
+    if (rc != 0){
+        consumer_producer_destroy(ctx->queue);
+        free(ctx->name);
+        free(ctx);
         return "Failed to create consumer thread";
     }
 
-    context->initialized = 1;
-    g_ctx = context;
-    log_info(context, "Plugin initialized successfully");
+    ctx->initialized = 1;
+    g_ctx = ctx;
+    log_info(g_ctx, "Plugin initialized successfully");
     return NULL;
 }
 
-
-const char* plugin_place_work(const char* str) 
-{
+const char* plugin_place_work(const char* str){
     if (!g_ctx || !g_ctx->initialized) return "Plugin not initialized";
     if (!str) return "Invalid string parameter";
 
-    if (strcmp(str, "<END>") == 0) 
-    {
+    if (strcmp(str, SENTINEL_END) == 0){
+        // Signal queue completion; consumer will forward SENTINEL after draining
         consumer_producer_signal_finished(g_ctx->queue);
-        // Don't propagate <END> here - let consumer thread do it after processing all items
         return NULL;
     }
-    const char* result = consumer_producer_put(g_ctx->queue, str);
-    if (result) log_error(g_ctx, result);
 
-    return result;
+    const char* err = consumer_producer_put(g_ctx->queue, str);
+    if (err) log_error(g_ctx, err);
+    return err;
 }
 
-
-void plugin_attach(const char* (*next_place_work)(const char*))
-{
+void plugin_attach(const char* (*next_place_work)(const char*)){
     if (!g_ctx) return;
     g_ctx->next_place_work = next_place_work;
 }
 
-
-const char* plugin_wait_finished(void) 
-{
+const char* plugin_wait_finished(void){
     if (!g_ctx || !g_ctx->initialized) return "Plugin not initialized";
-    return consumer_producer_wait_finished(g_ctx->queue) == 0 ? NULL : "Wait failed";
+    int rc = pthread_join(g_ctx->thread, NULL);
+    if (rc != 0) return "pthread_join failed";
+    g_ctx->initialized = 0;
+    return NULL;
 }
 
-const char* plugin_fini(void) 
-{
-    if(!g_ctx || !g_ctx->initialized) return "Plugin not initialized";
-    log_info(g_ctx, "Finalizing plugin");
-    g_ctx->next_place_work = NULL; // Disconnect from next plugin
+const char* plugin_fini(void){
+    if (!g_ctx) return "Plugin not initialized";
 
-    // Signal finished to stop accepting new items
-    consumer_producer_signal_finished(g_ctx->queue);
+    // If still running, attempt to join
+    if (g_ctx->initialized){
+        const char* err = plugin_wait_finished();
+        if (err) return err;
+    }
 
-    int join_res = pthread_join(g_ctx->thread, NULL);
-    if (join_res != 0) log_error(g_ctx, "Failed to join consumer thread");
+    if (g_ctx->queue){
+        consumer_producer_destroy(g_ctx->queue);
+        free(g_ctx->queue);
+        g_ctx->queue = NULL;
+    }
 
-    // Clean up resources
-    consumer_producer_destroy(g_ctx->queue);
-    free(g_ctx->queue);
     free(g_ctx->name);
-    g_ctx->queue = NULL;
     g_ctx->name = NULL;
-    g_ctx->initialized = 0;
+
     free(g_ctx);
     g_ctx = NULL;
-
-   return (join_res == 0) ? NULL : "Failed to finalize plugin properly";
+    return NULL;
 }

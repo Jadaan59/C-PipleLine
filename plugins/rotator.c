@@ -18,7 +18,7 @@ static const char* rotator_process(const char* str)
     {
         result[i] = str[i +1];
     }
-    result[len -1] = str[0];
+    result[0] = str[len -1];
     result[len] = '\0';
     return result;
 }

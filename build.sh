@@ -3,21 +3,16 @@ set -euo pipefail
 
 # toolchain
 CC="gcc"
-CFLAGS="-Wall -Wextra -O2 -fPIC -std=c99"
-CPPFLAGS="-I. -Iplugins -Iplugins/sync"
-LDFLAGS="-ldl -lpthread"
 
-# colors + tiny logger
-BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
-log(){ printf "%b[BUILD]%b %s\n" "$BLUE" "$NC" "$*"; }
-ok(){ printf "%b[SUCCESS]%b %s\n" "$GREEN" "$NC" "$*"; }
+# header search paths (so plugin_common.h can find consumer_producer.h, monitor.h)
+INC="-I. -Iplugins -Iplugins/sync"
 
 mkdir -p output
 
-# build main
-log "Building main -> output/analyzer"
-$CC $CFLAGS $CPPFLAGS -o output/analyzer main.c $LDFLAGS
-ok "Built output/analyzer"
+# build main (needs -ldl for dlopen/dlsym)
+echo "[BUILD] analyzer -> output/analyzer"
+$CC $INC -o output/analyzer main.c -ldl
+echo "[OK] Built output/analyzer"
 
 # build plugins: plugins/*.c excluding plugin_common.c and *_test.c
 shopt -s nullglob
@@ -30,23 +25,24 @@ for src in plugins/*.c; do
 done
 
 if ((${#plugins[@]} == 0)); then
-  log "No plugin sources found"; exit 0
+  echo "[BUILD] No plugin sources found"
+  exit 0
 fi
 
-log "Building plugins into output/"
+echo "[BUILD] Building plugins into output/"
 for src in "${plugins[@]}"; do
   name="${src##*/}"; name="${name%.c}"
   out="output/$name.so"
-  log "  -> $name.so"
-  $CC $CFLAGS $CPPFLAGS -shared -o "$out" \
-      "$src" \
+  echo "  -> $name.so"
+  $CC -fPIC -shared $INC -o "$out" \
+      "plugins/${name}.c" \
       plugins/plugin_common.c \
       plugins/sync/monitor.c \
       plugins/sync/consumer_producer.c \
-      $LDFLAGS
-  ok "  Built $out"
+      -ldl -lpthread
+  echo "  [OK] Built $out"
 done
 
-ok "All plugins built."
+echo "[OK] All plugins built."
 echo "Run example:"
 echo "  echo 'hello' | ./output/analyzer 20 uppercaser rotator logger"
