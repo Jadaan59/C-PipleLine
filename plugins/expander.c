@@ -1,5 +1,6 @@
 #include "plugin_common.h"
 #include <string.h>
+#include <stdlib.h>
 
 // Plugin-specific processing function
 static const char* expander_process(const char* str) 

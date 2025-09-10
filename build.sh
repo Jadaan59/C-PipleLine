@@ -16,7 +16,7 @@ mkdir -p output
 
 # build main
 log "Building main -> output/analyzer"
-$CC $CFLAGS $CPPFLAGS -o output/analyzer main.c -ldl -pthread
+$CC $CFLAGS $CPPFLAGS -o output/analyzer main.c $LDFLAGS
 ok "Built output/analyzer"
 
 # build plugins: plugins/*.c excluding plugin_common.c and *_test.c

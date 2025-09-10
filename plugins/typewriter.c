@@ -22,7 +22,7 @@ static const char* typewriter_process(const char* str)
 }
 
 // Plugin initialization (new API)
-plugin_context_t* plugin_init(int queue_size) 
+const char* plugin_init(int queue_size) 
 {
     return common_plugin_init(typewriter_process, "typewriter", queue_size);
 }

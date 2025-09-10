@@ -1,5 +1,6 @@
 #include "plugin_common.h"
 #include <string.h>
+#include <stdlib.h>
 
 
 // Plugin-specific processing function
@@ -22,7 +23,7 @@ static const char* flipper_process(const char* str)
 }
 
 // Plugin initialization (new API)
-plugin_context_t* plugin_init(int queue_size) 
+const char* plugin_init(int queue_size) 
 {
     return common_plugin_init(flipper_process, "flipper", queue_size);
 }
