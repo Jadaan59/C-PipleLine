@@ -1,5 +1,5 @@
 #include "plugin_common.h"
-
+#include <string.h>
 
 
 // Plugin-specific processing function

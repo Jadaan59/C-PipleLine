@@ -1,4 +1,5 @@
 #include "plugin_common.h"
+#include <string.h>
 
 // Plugin-specific processing function
 static const char* rotator_process(const char* str) 

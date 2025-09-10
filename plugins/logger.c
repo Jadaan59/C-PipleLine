@@ -1,4 +1,6 @@
 #include "plugin_common.h"
+#include <string.h>
+#include <stdio.h>
 
 // Plugin-specific processing function
 static const char* logger_process(const char* str) 
