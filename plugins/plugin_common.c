@@ -17,7 +17,7 @@ void log_error(plugin_context_t* context, const char* message){
 }
 
 void log_info(plugin_context_t* context, const char* message){
-    fprintf(stdout, "[INFO][%s] - %s\n", safe_name(context), message ? message : "(null)");
+    fprintf(stderr, "[INFO][%s] - %s\n", safe_name(context), message ? message : "(null)");
 }
 
 /* Consumer thread: drains queue, processes items, forwards to next stage (if any).
@@ -31,7 +31,7 @@ void log_info(plugin_context_t* context, const char* message){
  */
 void* plugin_consumer_thread(void* arg){
     plugin_context_t* context = (plugin_context_t*)arg;
-    log_info(context, "Consumer thread started");
+    //log_info(context, "Consumer thread started");
 
     for(;;){
         char* item = consumer_producer_get(context->queue);
@@ -61,7 +61,7 @@ void* plugin_consumer_thread(void* arg){
         if (err) log_error(context, err);
     }
 
-    log_info(context, "Consumer thread exiting");
+    //log_info(context, "Consumer thread exiting");
     return NULL;
 }
 
@@ -103,7 +103,7 @@ const char* common_plugin_init(const char* (*process_function)(const char*),
 
     ctx->initialized = 1;
     g_ctx = ctx;
-    log_info(g_ctx, "Plugin initialized successfully");
+    //log_info(g_ctx, "Plugin initialized successfully");
     return NULL;
 }
 

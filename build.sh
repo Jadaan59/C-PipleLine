@@ -4,15 +4,29 @@ set -euo pipefail
 # toolchain
 CC="gcc"
 
-# header search paths (so plugin_common.h can find consumer_producer.h, monitor.h)
+# header search paths (so plugin_common.h can find consumer_producer.h)
 INC="-I. -Iplugins -Iplugins/sync"
+
+# Colors for echo (green, blue, red, purple)
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+PURPLE='\033[0;35m'
+NC='\033[0m' # No Color
 
 mkdir -p output
 
+log_build() {
+    echo -e "${GREEN}[BUILD]${BLUE} $1"
+}
+
+log_success() {
+    echo -e "${PURPLE}[OK]${NC} $1"
+}
 # build main (needs -ldl for dlopen/dlsym)
-echo "[BUILD] analyzer -> output/analyzer"
+log_build "analyzer -> output/analyzer"
 $CC $INC -o output/analyzer main.c -ldl
-echo "[OK] Built output/analyzer"
+log_success "Built output/analyzer"
 
 # build plugins: plugins/*.c excluding plugin_common.c and *_test.c
 shopt -s nullglob
@@ -25,11 +39,11 @@ for src in plugins/*.c; do
 done
 
 if ((${#plugins[@]} == 0)); then
-  echo "[BUILD] No plugin sources found"
+  log_build "No plugin sources found"
   exit 0
 fi
 
-echo "[BUILD] Building plugins into output/"
+log_build "Building plugins into output/"
 for src in "${plugins[@]}"; do
   name="${src##*/}"; name="${name%.c}"
   out="output/$name.so"
@@ -40,9 +54,9 @@ for src in "${plugins[@]}"; do
       plugins/sync/monitor.c \
       plugins/sync/consumer_producer.c \
       -ldl -lpthread
-  echo "  [OK] Built $out"
+  log_success "Built $out"
 done
 
-echo "[OK] All plugins built."
+log_success "All plugins built."
 echo "Run example:"
-echo "  echo 'hello' | ./output/analyzer 20 uppercaser rotator logger"
+echo "  echo -e 'hello\n<END>' | ./output/analyzer 20 uppercaser rotator logger"
