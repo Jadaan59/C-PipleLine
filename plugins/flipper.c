@@ -1,6 +1,5 @@
 #include "plugin_common.h"
-#include <string.h>
-#include <stdlib.h>
+
 
 
 // Plugin-specific processing function
@@ -13,7 +12,7 @@ static const char* flipper_process(const char* str)
 
     char* result = malloc(len + 1);
     if (!result) return NULL;
-    
+
     for (size_t i = 0; i < len; i++) 
     {
         result[i] = str[len - 1 - i];

@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#define D_GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,7 +72,11 @@ static plugin_handle_t* load_plugin(const char* plugin_name)
     
     // Allocate plugin handle
     plugin_handle_t* plugin = malloc(sizeof(plugin_handle_t));
-    if (!plugin) dlclose(handle); return NULL;
+    if (!plugin) 
+    {
+        dlclose(handle);
+         return NULL;
+    }
     
     // Clear dlerror
     dlerror();

@@ -75,7 +75,11 @@ const char* common_plugin_init(const char* (*process_function)(const char*), con
     if (!context) return "Memory allocation failed";
 
     char* copy = strdup(name);
-    if (!copy) free(context); return "Memory allocation failed";
+    if (!copy) 
+    {
+        free(context);
+        return "Memory allocation failed";
+    }
 
     context->name = copy;
     context->process_func = process_function;
