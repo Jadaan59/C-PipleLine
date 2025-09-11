@@ -14,11 +14,11 @@ static const char* rotator_process(const char* str)
     if (!result) return NULL;
 
     
-    for (size_t i = 1; i < len -1 ; i++) 
+    for (size_t i = 0; i < len -1 ; i++) 
     {
         result[i] = str[i +1];
     }
-    result[0] = str[len -1];
+    result[len -1] = str[0];
     result[len] = '\0';
     return result;
 }
