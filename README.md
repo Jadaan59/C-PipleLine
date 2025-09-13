@@ -2,13 +2,18 @@
 
 ## Overview
 
-This project is a simple, extensible text-processing pipeline. It dynamically loads one or more plugins at runtime and chains them together. Lines from standard input flow through the chain; each plugin transforms the text and forwards it to the next plugin. The special sentinel string `<END>` triggers a graceful drain and shutdown of the whole pipeline.
+This project is a modular, extensible text-processing pipeline designed to dynamically load and chain plugins at runtime. Each plugin processes strings and forwards the results to the next stage. The system is built to handle graceful shutdowns using a sentinel string `<END>`.
 
-Key points:
-- Plugins are shared libraries (`.so`) loaded at runtime.
-- Each plugin owns a worker thread and a bounded queue.
-- Synchronization uses a small monitor abstraction to avoid lost wakeups.
-- Shutdown is coordinated with a sentinel and join-based teardown.
+### Creating Plugins
+
+To create a new plugin, implement the SDK provided in `plugin_sdk.h`. The SDK defines the required functions and structures for integration:
+- `plugin_init`: Initialize the plugin.
+- `plugin_place_work`: Accept input for processing.
+- `plugin_attach`: Attach the plugin to the pipeline.
+- `plugin_wait_finished`: Wait for the plugin to finish processing.
+- `plugin_fini`: Clean up resources.
+
+Plugins should be compiled as shared libraries (`.so`) and placed in the `output/` directory. For example, a plugin named `uppercaser` should produce `output/uppercaser.so`.
 
 ## Project Structure
 
@@ -33,33 +38,38 @@ Key points:
 
 ## Build and Run
 
-- Platform: Linux (tested with Ubuntu 24.04). The recommended setup is to use the provided `Dockerfile` together with the `.devcontainer` configuration in VS Code for a consistent GCC and toolchain environment.
+### Build
 
-Quick start:
+The recommended setup is to use the provided `Dockerfile` for a consistent GCC and toolchain environment. To build the project:
+
 ```sh
-./build.sh
-echo -e "hello\n<END>" | ./output/analyzer 20 uppercaser rotator logger
+# Build the Docker image
+docker build -t analyzer-pipeline .
+
+# Run the build inside the Docker container
+docker run --rm -v $(pwd):/workspace -w /workspace analyzer-pipeline ./build.sh
 ```
 
-Usage:
+### Usage
+
 ```text
 ./output/analyzer <queue_size> <plugin1> ... <pluginN>
 ```
 
-More ways to run:
-- Piped input (batch):
-  ```sh
-  echo -e "<some Text>\n<some Text>\n...\n<END>" | ./output/analyzer <queue_size> <plugin1> ... <pluginN>
-  ```
-- Interactive input:
-  ```sh
-  ./output/analyzer <queue_size> <plugin1> ... <pluginN>
-  # type your lines, press Enter after each
-  # when done, type:
-  <END>
-  ```
+### Example
 
-## Notes
+```sh
+# Example with piped input
+./build.sh
 
-- Plugin `process_func` should return a heap-allocated string. The runtime forwards it to the next stage or frees it if there is no downstream plugin.
-- Plugins are looked up in `output/` by name (e.g., `uppercaser` → `output/uppercaser.so`).
+echo -e "hello\n<END>" | ./output/analyzer 20 uppercaser rotator logger
+```
+
+### Interactive Input
+
+```sh
+./output/analyzer <queue_size> <plugin1> ... <pluginN>
+# Type your lines, press Enter after each
+# When done, type:
+<END>
+```
