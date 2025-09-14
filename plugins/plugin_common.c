@@ -20,6 +20,10 @@ void log_info(plugin_context_t* context, const char* message){
     fprintf(stderr, "[INFO][%s] - %s\n", safe_name(context), message ? message : "(null)");
 }
 
+const char* plugin_get_name(void) {
+    return (g_ctx && g_ctx->name) ? g_ctx->name : "unknown";
+}
+
 /* Consumer thread: drains queue, processes items, forwards to next stage (if any).
  * Contract:
  * - Items returned by consumer_producer_take are heap pointers we must free.
@@ -48,6 +52,7 @@ void* plugin_consumer_thread(void* arg){
             if (context->next_place_work){
                 const char* err = context->next_place_work(processed);
                 if (err) log_error(context, err);
+                free((void*)processed); // always free processed result after forwarding
             } else {
                 // No next stage: we must free the processed result.
                 free((void*)processed);
