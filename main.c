@@ -207,12 +207,7 @@ int main(int argc, char* argv[])
         if (strcmp(line, "<END>") == 0) break;
     }
     
-    // deattach to avoid forwards during shutdown
-    for (int i = 0; i < num_plugins; i++) 
-    {
-        plugins[i]->attach(NULL); // Disconnect from next plugin
-    }
-
+    
     for (int i = 0; i < num_plugins; i++) 
     {
         const char* error = plugins[i]->wait_finished();

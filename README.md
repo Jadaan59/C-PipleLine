@@ -47,7 +47,7 @@ The recommended setup is to use the provided `Dockerfile` for a consistent GCC a
 docker build -t analyzer-pipeline .
 
 # Run the build inside the Docker container
-docker run --rm -v $(pwd):/workspace -w /workspace analyzer-pipeline ./build.sh
+docker run --rm -v $"(pwd)":/workspace -w /workspace analyzer-pipeline ./build.sh
 ```
 
 ### Usage
