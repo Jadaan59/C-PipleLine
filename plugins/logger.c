@@ -8,7 +8,7 @@ static const char* logger_process(const char* str)
     if (!str) return NULL;
 
     // Log the string
-    printf("[LOGGER] %s\n", str);
+    printf("[logger] %s\n", str);
     // Return the original string unchanged
     return strdup(str);
 }

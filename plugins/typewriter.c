@@ -9,7 +9,7 @@ static const char* typewriter_process(const char* str)
 {
     if (!str) return NULL;
 
-    fputs("[TYPEWRITER] ", stdout);
+    fputs("[typewriter] ", stdout);
     for (const char* p = str; *p != '\0'; p++) 
     {
         putchar(*p);

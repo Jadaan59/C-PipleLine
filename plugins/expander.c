@@ -10,7 +10,7 @@ static const char* expander_process(const char* str)
     size_t len = strlen(str);
     if (len == 0) return strdup("");
 
-    size_t new_len = len * 2;
+    size_t new_len = len * 2 -1;
     char* result = malloc(new_len + 1);
     if (!result) return NULL;
 

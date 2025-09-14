@@ -13,12 +13,9 @@ static const char* rotator_process(const char* str)
     char* result = malloc(len + 1);
     if (!result) return NULL;
 
+    result[0] = str[len -1];
+    for (size_t i = 0; i < len -1 ; i++) result[i+1] = str[i];
     
-    for (size_t i = 0; i < len -1 ; i++) 
-    {
-        result[i] = str[i +1];
-    }
-    result[len -1] = str[0];
     result[len] = '\0';
     return result;
 }
