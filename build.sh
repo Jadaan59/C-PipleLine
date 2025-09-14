@@ -47,7 +47,7 @@ log_build "Building plugins into output/"
 for src in "${plugins[@]}"; do
   name="${src##*/}"; name="${name%.c}"
   out="output/$name.so"
-  echo ${NC}"  -> $name.so"
+  echo -e "${BLUE}  -> $name.so${NC}"
   $CC -fPIC -shared $INC -o "$out" \
       "plugins/${name}.c" \
       plugins/plugin_common.c \

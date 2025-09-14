@@ -46,7 +46,7 @@ To build the project, use the provided `Dockerfile` for a consistent GCC and too
 
 ```sh
 # Build the Docker image
-docker build -t analyzer-pipeline .
+docker build -t analyzer .
 
 # Run the build inside the Docker container
 docker run --rm -it  -v "$(pwd):/workspace" -w /workspace  analyzer bash
