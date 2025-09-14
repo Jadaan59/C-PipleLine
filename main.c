@@ -7,7 +7,6 @@
 #include <pthread.h>
 
 // Plugin function type definitions 
-typedef const char* (*plugin_get_name_func_t)(void);
 typedef const char* (*plugin_init_func_t)(int);
 typedef const char* (*plugin_fini_func_t)(void);
 typedef const char* (*plugin_place_work_func_t)(const char*);
@@ -17,7 +16,6 @@ typedef const char* (*plugin_wait_finished_func_t)(void);
 // Plugin handle structure
 typedef struct 
 {
-    plugin_get_name_func_t get_name;
     plugin_init_func_t init;
     plugin_fini_func_t fini;
     plugin_place_work_func_t place_work;
@@ -82,7 +80,6 @@ static plugin_handle_t* load_plugin(const char* plugin_name)
     dlerror();
     
     // Resolve function symbols
-    plugin->get_name      = (plugin_get_name_func_t)     dlsym(handle, "plugin_get_name");
     plugin->init          = (plugin_init_func_t)         dlsym(handle, "plugin_init");
     plugin->fini          = (plugin_fini_func_t)         dlsym(handle, "plugin_fini");
     plugin->place_work    = (plugin_place_work_func_t)   dlsym(handle, "plugin_place_work");

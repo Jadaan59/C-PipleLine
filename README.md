@@ -36,18 +36,29 @@ Plugins should be compiled as shared libraries (`.so`) and placed in the `output
 4. When `<END>` reaches `plugin_place_work`, the common layer does not enqueue it. Instead, it calls `consumer_producer_signal_finished`, which sets `finished=1` and signals all monitors. Each worker thread drains remaining items, then forwards a single `<END>` downstream after its queue is empty.
 5. `main.c` waits for completion by calling each plugin’s `plugin_wait_finished` (joins the worker thread) and then `plugin_fini` to release resources.
 
-## Build and Run
 
-### Build
+### Build on Mac and Windows
 
-The recommended setup is to use the provided `Dockerfile` for a consistent GCC and toolchain environment. To build the project:
+To build the project, use the provided `Dockerfile` for a consistent GCC and toolchain environment.
+
+#### For Mac users:
 
 ```sh
 # Build the Docker image
 docker build -t analyzer-pipeline .
 
 # Run the build inside the Docker container
-docker run --rm -v $"(pwd)":/workspace -w /workspace analyzer-pipeline ./build.sh
+docker run --rm -it  -v "$(pwd):/workspace" -w /workspace  analyzer bash
+```
+
+#### For Windows users:
+
+```powershell
+# Build the Docker image
+docker build -t analyzer-pipeline .
+
+# Run the build inside the Docker container
+docker run --rm -it -v "${PWD}:/workspace" -w /workspace analyzer-pipeline bash
 ```
 
 ### Usage
