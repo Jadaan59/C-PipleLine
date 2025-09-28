@@ -38,7 +38,7 @@ void* plugin_consumer_thread(void* arg){
     //log_info(context, "Consumer thread started");
 
     for(;;){
-        char* item = consumer_producer_get(context->queue);
+        const char* item = consumer_producer_get(context->queue);
         if (!item) {
             // Queue is finished and empty.
             break;
@@ -91,7 +91,7 @@ const char* common_plugin_init(const char* (*process_function)(const char*),
         free(ctx->name);
         free(ctx->queue);
         free(ctx);
-        return "Failed to create queue";
+        return err;
     }
 
     ctx->process_func = process_function;

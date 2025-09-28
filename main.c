@@ -45,6 +45,17 @@ void print_usage(void)
     printf("  echo '<END>' | ./analyzer 20 uppercaser rotator logger\n");
 }
 
+static int check_dlerror(const char *symname, void *handle, plugin_handle_t* plugin) {
+    char *error = dlerror();
+    if (error) {
+        fprintf(stderr, "Failed to load symbol %s: %s\n", symname, error);
+        dlclose(handle);
+        free(plugin);
+        return 2;  //exit code 2 on error
+    }
+    return 0;
+}
+
 // Function to load a plugin
 static plugin_handle_t* load_plugin(const char* plugin_name) 
 {
@@ -80,22 +91,25 @@ static plugin_handle_t* load_plugin(const char* plugin_name)
     dlerror();
     
     // Resolve function symbols
-    plugin->init          = (plugin_init_func_t)         dlsym(handle, "plugin_init");
-    plugin->fini          = (plugin_fini_func_t)         dlsym(handle, "plugin_fini");
-    plugin->place_work    = (plugin_place_work_func_t)   dlsym(handle, "plugin_place_work");
-    plugin->attach        = (plugin_attach_func_t)       dlsym(handle, "plugin_attach");
+    plugin->init = (plugin_init_func_t) dlsym(handle, "plugin_init");
+    if (check_dlerror("plugin_init", handle, plugin)) return 2;
+
+    dlerror();
+    plugin->fini = (plugin_fini_func_t) dlsym(handle, "plugin_fini");
+    if (check_dlerror("plugin_fini", handle, plugin)) return 2;
+
+    dlerror();
+    plugin->place_work = (plugin_place_work_func_t) dlsym(handle, "plugin_place_work");
+    if (check_dlerror("plugin_place_work", handle, plugin)) return 2;
+
+    dlerror();
+    plugin->attach = (plugin_attach_func_t) dlsym(handle, "plugin_attach");
+    if (check_dlerror("plugin_attach", handle, plugin)) return 2;
+
+    dlerror();
     plugin->wait_finished = (plugin_wait_finished_func_t)dlsym(handle, "plugin_wait_finished");
-    
-    // Check for errors
-    char* error = dlerror();
-    if (error) 
-    {
-        fprintf(stderr, "Error resolving symbols for plugin %s: %s\n", plugin_name, error);
-        dlclose(handle);
-        free(plugin);
-        return NULL;
-    }
-    
+    if (check_dlerror("plugin_wait_finished", handle, plugin)) return 2;
+
     // Store plugin info
     plugin->name = strdup(plugin_name);
     plugin->handle = handle;
@@ -165,7 +179,7 @@ int main(int argc, char* argv[])
         if (error) 
         {
             fprintf(stderr, "Error initializing plugin %s: %s\n", plugins[i]->name, error ? error : "Unknown error");
-            // Clean up
+            // Clean up if plugin init fails
             for (int j = 0; j <= i; j++) 
             {
                 if (j < i) plugins[j]->fini();
