@@ -112,13 +112,13 @@ const char* consumer_producer_put(consumer_producer_t* queue, const char* item)
             return "Monitor wait failed";
         }
         pthread_mutex_lock(&queue->mutex);
-        
-        // Recheck finished state after reacquiring lock
+    }
+
+    // Recheck finished state after reacquiring lock
         if (queue->finished) {
             pthread_mutex_unlock(&queue->mutex);
             return "Queue is finished";
         }
-    }
     
     // Allocate and copy the string
     char* item_copy = strdup(item);
@@ -206,7 +206,7 @@ int consumer_producer_wait_finished(consumer_producer_t* queue)
     
     pthread_mutex_lock(&queue->mutex);
     // Wait until finished flag is set
-    while (!queue->finished && queue->count == 0) 
+    while (!(queue->finished && queue->count == 0)) 
     {
         monitor_reset(&queue->finished_monitor);
         pthread_mutex_unlock(&queue->mutex);
