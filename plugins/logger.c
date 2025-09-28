@@ -8,7 +8,10 @@ static const char* logger_process(const char* str)
     if (!str) return NULL;
 
     // Log the string
-    printf("[logger] %s\n", str);
+    fputs("[logger] ", stdout);
+    fputs(str, stdout);
+    putchar('\n');
+    fflush(stdout);
     // Return the original string unchanged
     return strdup(str);
 }

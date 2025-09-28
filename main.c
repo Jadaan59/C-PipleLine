@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <errno.h> 
+#include <limits.h>
 #include <link.h>
 #include <pthread.h>
 
@@ -139,13 +141,17 @@ int main(int argc, char* argv[])
     }
     
     // Parse queue size
-    int queue_size = atoi(argv[1]);
-    if (queue_size <= 0) 
-    {
-        fprintf(stderr, "Error: Queue size must be a positive integer\n");
+    char *end;
+    errno = 0;
+    long q = strtol(argv[1], &end, 10);
+
+    if (errno == ERANGE || *end != '\0' || q < 1 || q > INT_MAX) {
+        fprintf(stderr, "Invalid queue size: '%s'\n", argv[1]);
         print_usage();
         return 1;
     }
+
+    int queue_size = (int)q;
     
     // Calculate number of plugins
     int num_plugins = argc - 2;

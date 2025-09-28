@@ -18,6 +18,7 @@ static const char* typewriter_process(const char* str)
     }
 
     putchar('\n');
+    fflush(stdout);
     return strdup(str);
 }
 
