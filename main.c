@@ -92,23 +92,23 @@ static plugin_handle_t* load_plugin(const char* plugin_name)
     
     // Resolve function symbols
     plugin->init = (plugin_init_func_t) dlsym(handle, "plugin_init");
-    if (check_dlerror("plugin_init", handle, plugin)) return 2;
+    if (check_dlerror("plugin_init", handle, plugin)) return NULL;
 
     dlerror();
     plugin->fini = (plugin_fini_func_t) dlsym(handle, "plugin_fini");
-    if (check_dlerror("plugin_fini", handle, plugin)) return 2;
+    if (check_dlerror("plugin_fini", handle, plugin)) return NULL;
 
     dlerror();
     plugin->place_work = (plugin_place_work_func_t) dlsym(handle, "plugin_place_work");
-    if (check_dlerror("plugin_place_work", handle, plugin)) return 2;
+    if (check_dlerror("plugin_place_work", handle, plugin)) return NULL;
 
     dlerror();
     plugin->attach = (plugin_attach_func_t) dlsym(handle, "plugin_attach");
-    if (check_dlerror("plugin_attach", handle, plugin)) return 2;
+    if (check_dlerror("plugin_attach", handle, plugin)) return NULL;
 
     dlerror();
     plugin->wait_finished = (plugin_wait_finished_func_t)dlsym(handle, "plugin_wait_finished");
-    if (check_dlerror("plugin_wait_finished", handle, plugin)) return 2;
+    if (check_dlerror("plugin_wait_finished", handle, plugin)) return NULL;
 
     // Store plugin info
     plugin->name = strdup(plugin_name);

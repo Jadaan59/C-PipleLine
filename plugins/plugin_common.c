@@ -38,7 +38,7 @@ void* plugin_consumer_thread(void* arg){
     //log_info(context, "Consumer thread started");
 
     for(;;){
-        const char* item = consumer_producer_get(context->queue);
+        char* item = consumer_producer_get(context->queue);
         if (!item) {
             // Queue is finished and empty.
             break;

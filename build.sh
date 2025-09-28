@@ -7,6 +7,8 @@ CC="gcc"
 # header search paths (so plugin_common.h can find consumer_producer.h)
 INC="-I. -Iplugins -Iplugins/sync"
 
+CFLAGS="-std=c11 -Wall -Wextra -Werror -O2 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE"
+
 # Colors for echo (green, blue, red, purple)
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -25,7 +27,7 @@ log_success() {
 }
 # build main (needs -ldl for dlopen/dlsym)
 log_build "analyzer -> output/analyzer"
-$CC $INC -o output/analyzer main.c -ldl
+$CC $CFLAGS $INC -o output/analyzer main.c -ldl
 log_success "Built output/analyzer"
 
 # build plugins: plugins/*.c excluding plugin_common.c and *_test.c
@@ -39,8 +41,8 @@ for src in plugins/*.c; do
 done
 
 if ((${#plugins[@]} == 0)); then
-  log_build "No plugin sources found"
-  exit 0
+  echo -e "${RED}[ERROR]${NC} No plugin sources found in plugins/*.c"
+  exit 1
 fi
 
 log_build "Building plugins into output/"
@@ -48,7 +50,7 @@ for src in "${plugins[@]}"; do
   name="${src##*/}"; name="${name%.c}"
   out="output/$name.so"
   echo -e "${BLUE}  -> $name.so${NC}"
-  $CC -fPIC -shared $INC -o "$out" \
+  $CC -fPIC -shared $CFLAGS $INC -o "$out" \
       "plugins/${name}.c" \
       plugins/plugin_common.c \
       plugins/sync/monitor.c \
